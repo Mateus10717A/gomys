@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gomys - Hub para Sellers 2026</title>
+<script>try{if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  body{font-family:'Plus Jakarta Sans',sans-serif}
+  .no-scrollbar::-webkit-scrollbar{display:none}
+  .no-scrollbar{scrollbar-width:none}
+  .tab{break-inside:avoid}
+  body{background:#F3F6FB}
+  .dark body{background:#0B1220}
+  @media(min-width:1024px){
+    header,main,footer,#notice{margin-left:248px!important}
+    header .justify-between{justify-content:flex-end}
+    #brand{position:fixed;left:20px;top:16px;z-index:60}
+    #brand span{color:#fff!important}
+    #nav{position:fixed;left:0;top:0;bottom:0;width:248px;flex-direction:column;gap:2px;overflow-y:auto;padding:84px 12px 16px;background:#0B1B3F;border:0;z-index:55}
+    #nav button{background:transparent!important;color:#B9C9EE!important;padding:10px 12px;border-radius:10px;font-size:13px;width:100%;justify-content:flex-start;white-space:normal;text-align:left}
+    #nav button:hover{background:rgba(255,255,255,.08)!important}
+    #nav button.bg-blue-600{background:#2563EB!important;color:#fff!important}
+    #nav svg{width:16px;height:16px}
+  }
+</style>
+</head>
+<body class="text-slate-800 dark:text-slate-100 antialiased min-h-screen flex flex-col">
+
+<!-- Login Modal Gate -->
+<div id="gate" class="hidden fixed inset-0 z-[100] bg-blue-950 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-8 text-slate-800 dark:text-slate-100 shadow-2xl border border-slate-800">
+    <div class="text-3xl font-extrabold text-blue-600">Gomys</div>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Entre para salvar seus produtos e vendas na sua conta com segurança.</p>
+    <button onclick="loginSocial('google')" class="mt-6 w-full py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition">Continuar com Google</button>
+    <button onclick="loginSocial('apple')" class="mt-2 w-full py-2.5 rounded-xl bg-black text-white font-semibold text-sm hover:bg-slate-900 transition">Continuar com Apple</button>
+    <div class="my-4 text-center text-xs text-slate-400">ou com e-mail e senha</div>
+    <input id="lgEmail" type="email" autocomplete="email" placeholder="seu@gmail.com" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+    <input id="lgPass" type="password" autocomplete="current-password" placeholder="Senha (mínimo 6 caracteres)" class="mt-2 w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+    <div class="mt-3 grid grid-cols-2 gap-2">
+      <button onclick="loginEmail(false)" class="py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition">Entrar</button>
+      <button onclick="loginEmail(true)" class="py-2.5 rounded-xl border border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 font-bold text-sm transition">Criar conta</button>
+    </div>
+    <button onclick="resetPass()" class="mt-3 text-xs underline text-slate-500 block mx-auto">Esqueci a senha</button>
+    <p id="lgMsg" class="text-xs text-rose-600 mt-3 text-center font-semibold" role="alert"></p>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex justify-between h-16 items-center">
+      <div id="brand" class="flex items-center gap-3 cursor-pointer" onclick="switchTab(0)">
+        <div class="bg-blue-600 text-white p-2 rounded-xl flex items-center justify-center"><i data-lucide="calculator" class="w-6 h-6"></i></div>
+        <span class="text-2xl font-extrabold text-slate-900 dark:text-white">Gomys</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="logoutBtn" onclick="logout()" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Sair</button>
+        <button onclick="exportPDF()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition"><i data-lucide="file-down" class="w-4 h-4"></i><span class="hidden sm:inline">Exportar PDF</span></button>
+        <button onclick="toggleTheme()" aria-label="Alternar tema" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition"><i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i><i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i></button>
+      </div>
+    </div>
+    <nav id="nav" class="flex gap-1 overflow-x-auto py-2 border-t border-slate-100 dark:border-slate-800 no-scrollbar"></nav>
+  </div>
+</header>
+
+<!-- Notice Banner -->
+<div id="notice" class="hidden mx-4 mt-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 text-sm font-semibold border border-blue-100 dark:border-blue-900" role="status"></div>
+
+<!-- Main Container -->
+<main id="main" class="flex-1 max-w-7xl w-full mx-auto px-4 py-8"></main>
+
+<!-- Footer -->
+<footer class="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">
+  <p>© 2026 Gomys Hub. Simulações de apoio à decisão; não substituem orientação contábil.</p>
+  <p class="mt-1">Seus dados ficam salvos de forma segura. Taxas e tarifas são estimativas editáveis: confira nas tabelas oficiais de cada canal.</p>
+  <p id="stamp" class="mt-1 text-slate-400"></p>
+  <button onclick="resetAll()" class="mt-2 underline text-rose-500 hover:text-rose-600 transition">Apagar dados salvos</button>
+</footer>
+
+<!-- Application Script -->
+<script>
+const $=id=>document.getElementById(id), v=id=>parseFloat($(id)?.value)||0, set=(id,t)=>{if($(id))$(id).textContent=t};
+const R=n=>'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let KEY='gomys_v3',started=false,auth=null,CFG={};const ADMIN=location.hash==='#admin';
+
+const FIREBASE_CONFIG={
+  apiKey:'AIzaSyDvu8uC_PKGM6FgBZ1Xc454CD1K6CN6rdA',
+  authDomain:'login-135f5.firebaseapp.com',
+  projectId:'login-135f5',
+  appId:'1:111532415114:web:489631aeff82be15307573'
+};
+
+const CH={
+  ml_premium:{name:'Mercado Livre Premium',rate:.16,fixed:6},
+  ml_classico:{name:'Mercado Livre Clássico',rate:.11,fixed:6},
+  shopee:{name:'Shopee',rate:.14,fixed:4},
+  amazon:{name:'Amazon BR',rate:.15,fixed:0},
+  magalu:{name:'Magalu',rate:.128,fixed:5},
+  tiktok:{name:'TikTok Shop',rate:.10,fixed:2.5},
+  propria:{name:'Loja Própria / Gateway',rate:.035,fixed:.5}
+};
+
+let kit=[{name:'Garrafa Térmica Inox 1L',cost:50,qty:2},{name:'Copo Térmico 473ml',cost:25,qty:1}];
+let G={}, chart=null, cur=0, advOpen=false, ADV=new Set([11,13]);
+let skus=[{n:'Garrafa Térmica Inox 1L',c:50,p:149.9,ch:'ml_premium',q:120},{n:'Copo Térmico 473ml',c:25,p:69.9,ch:'shopee',q:200}];
+let scen=[], sales=[];
+
+const IN='w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-slate-800 dark:text-slate-100';
+const CARD='bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm';
+const f=(id,l,val,st='any')=>`<div><label for="${id}" class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300">${l}</label><input type="number" id="${id}" value="${val}" step="${st}" class="${IN}"></div>`;
+const bx=(id,l,c,sub)=>`<div class="p-5 rounded-2xl border border-blue-100 dark:border-slate-800 bg-blue-50/60 dark:bg-slate-800/50"><span class="text-xs text-slate-500 dark:text-slate-400 font-semibold block mb-1">${l}</span><span id="${id}" class="text-3xl font-extrabold tracking-tight ${c}">-</span>${sub?`<span id="${sub}" class="block text-xs text-slate-500 dark:text-slate-400 mt-1"></span>`:''}</div>`;
+const ck=(id,l,auto)=>`<label class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200"><span>${l}${auto?' <em class="font-normal text-slate-500">(automático)</em>':''}</span><input type="checkbox" id="${id}" ${auto?'disabled':''} class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"></label>`;
+const G2='grid grid-cols-1 sm:grid-cols-2 gap-4';
+
+const TABS=[
+['home','Início','',
+`<div class="rounded-3xl bg-blue-700 text-white p-8 sm:p-12 grid lg:grid-cols-2 gap-8 items-center shadow-lg"><div>
+<h1 id="heroTitle" class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.05]">Descubra quanto sobra de verdade em cada venda.</h1>
+<p id="heroSub" class="mt-4 text-blue-100 max-w-xl">Shopee, Mercado Livre, Amazon e TikTok Shop cobram tarifa, frete e imposto. O Gomys calcula tudo e mostra quais produtos dão lucro e quais dão prejuízo.</p>
+<div class="mt-6 flex flex-wrap gap-3">
+<button onclick="switchTab(3)" class="px-5 py-3 bg-white text-blue-900 font-bold rounded-xl shadow hover:bg-blue-50 transition">Calcular um produto grátis</button>
+<button onclick="switchTab(1)" class="px-5 py-3 border border-white/40 font-bold rounded-xl hover:bg-white/10 transition">Importar minhas vendas</button>
+</div></div>
+<div class="rounded-2xl bg-white text-slate-800 p-6 shadow-xl">
+<p class="text-xs font-semibold text-slate-500">Exemplo prático: R$ 149,90 no Mercado Livre</p>
+<div class="mt-4 space-y-3 text-xs">
+<div><div class="flex justify-between font-semibold"><span>Custo do produto</span><span>R$ 50,00</span></div><div class="h-2 mt-1 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-slate-400" style="width:33%"></div></div></div>
+<div><div class="flex justify-between font-semibold"><span>Tarifa do canal</span><span>R$ 29,98</span></div><div class="h-2 mt-1 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-slate-400" style="width:20%"></div></div></div>
+<div><div class="flex justify-between font-semibold"><span>Frete e embalagem</span><span>R$ 22,00</span></div><div class="h-2 mt-1 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-slate-400" style="width:15%"></div></div></div>
+<div><div class="flex justify-between font-semibold"><span>Impostos e anúncios</span><span>R$ 24,73</span></div><div class="h-2 mt-1 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-slate-400" style="width:16.5%"></div></div></div>
+<div><div class="flex justify-between font-semibold"><span>Sobra para você</span><span>R$ 23,19</span></div><div class="h-2 mt-1 rounded-full bg-slate-100"><div class="h-2 rounded-full bg-emerald-500" style="width:15.5%"></div></div></div>
+</div>
+<p class="mt-5 text-sm font-extrabold text-emerald-600">Sobram 15,5% líquidos de cada venda</p></div></div>
+<div class="grid sm:grid-cols-3 gap-4 mt-8">
+<div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"><h3 class="font-bold text-base">Preço certo</h3><p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Veja o preço mínimo em cada canal para atingir a margem desejada sem surpresas.</p></div>
+<div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"><h3 class="font-bold text-base">Lucro real</h3><p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Envie o relatório de vendas e descubra o lucro por SKU com precisão cirúrgica.</p></div>
+<div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"><h3 class="font-bold text-base">Menos prejuízo</h3><p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Alertas automáticos para produtos no vermelho, estoque baixo e anúncios caros.</p></div>
+</div>
+<h3 class="text-lg font-bold mt-10 mb-4">Passo a passo rápido</h3>
+<ol class="grid sm:grid-cols-3 gap-4 text-sm">
+<li class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"><b class="text-blue-600 block mb-1 text-base">Passo 1</b>Cadastre o custo e preço dos seus produtos no Catálogo.</li>
+<li class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"><b class="text-blue-600 block mb-1 text-base">Passo 2</b>Suba o relatório de vendas do marketplace em Vendas reais.</li>
+<li class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm"><b class="text-blue-600 block mb-1 text-base">Passo 3</b>Acompanhe o lucro real e elimine produtos deficitários.</li>
+</ol>`],
+
+['file-spreadsheet','Vendas reais','Suba o relatório de vendas do marketplace e descubra o resultado financeiro real por produto.',
+`<div class="flex flex-wrap gap-2 mt-4 items-center">
+<label class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer transition shadow-sm">Importar relatório (CSV)<input type="file" accept=".csv,text/csv" class="hidden" onchange="importSales(this)"></label>
+<button onclick="tplSales()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-xs font-semibold transition">Baixar modelo</button>
+<button onclick="sales=[];calcAll();save()" class="px-3 py-2 text-xs text-rose-500 hover:underline">Limpar</button>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Colunas suportadas: produto, quantidade, valor vendido, tarifas, frete e custo unitário. Se faltar o custo, o sistema busca no Catálogo.</p>
+<p id="salesMsg" class="text-xs font-bold text-rose-500 mt-2"></p>
+<div id="salesSum" class="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-sm font-semibold border border-slate-200 dark:border-slate-800"></div>
+<div class="overflow-x-auto mt-4"><table class="w-full text-xs text-left"><thead class="bg-slate-100 dark:bg-slate-800 font-semibold"><tr><th class="p-3">Produto</th><th class="p-3">Qtd</th><th class="p-3">Faturamento</th><th class="p-3">Tarifas + Frete</th><th class="p-3">Custo</th><th class="p-3">Lucro real</th><th class="p-3">Margem</th></tr></thead><tbody id="salesBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody></table></div>`],
+
+['layout-dashboard','Painel','Visão executiva imediata da saúde financeira, lucro líquido e alertas críticos do e-commerce.',
+`<div id="dVerdict" class="mt-4 p-5 rounded-2xl text-base font-bold shadow-sm"></div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+${bx('dLucro','Lucro por unidade','text-emerald-600')}
+${bx('dMargem','Margem líquida','text-blue-600')}
+${bx('dBE','Equilíbrio mensal','text-rose-600')}
+${bx('dScore','Score de saúde','text-amber-600')}
+</div>
+<h3 class="text-sm font-bold mt-8 mb-3">Alertas operacionais</h3>
+<ul id="alerts" class="space-y-2 text-xs"></ul>`],
+
+['calculator','1. Precificação','Simule comissão exata, impostos, antecipação, frete, anúncios e margem líquida por canal.',
+`<div class="mt-4 max-w-sm"><label for="calcChannel" class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300">Canal de Venda</label><select id="calcChannel" class="${IN}">${Object.entries(CH).map(([k,c])=>`<option value="${k}">${c.name} (${+(c.rate*100).toFixed(1)}% + R$ ${c.fixed.toFixed(2)})</option>`).join('')}</select></div>
+<div class="grid lg:grid-cols-12 gap-8 mt-6">
+<div class="lg:col-span-7 space-y-4">
+<div class="${G2}">${f('costPrice','Custo do produto (R$)',50,.01)}${f('salePrice','Preço de venda (R$)',149.9,.01)}</div>
+<div class="grid sm:grid-cols-3 gap-4">${f('taxRate','Imposto (%)',6,.1)}${f('anticipRate','Antecipação (%)',2.5,.1)}${f('shippingCost','Frete / Subsídio (R$)',18.5,.5)}</div>
+<div class="${G2}">${f('operationalCost','Embalagem e operação (R$)',3.5,.5)}${f('adsPercent','Ads / ACOS (%)',8,.5)}</div>
+<div class="${G2}">${f('targetMargin','Margem desejada (%)',20,.5)}<div class="flex items-end"><button onclick="saveScen()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl w-full transition shadow-sm">Salvar cenário atual</button></div></div>
+<div class="overflow-x-auto mt-4"><table class="w-full text-xs text-left"><tbody id="scenBody"></tbody></table></div>
+</div>
+<div class="lg:col-span-5 space-y-4 sticky top-28 lg:static self-start z-10 bg-white dark:bg-slate-900 pb-2">
+<div class="${G2}">${bx('netProfitVal','Lucro líquido','text-emerald-600')}${bx('netMarginVal','Margem líquida','text-blue-600')}</div>
+<div class="text-xs space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+<p class="flex justify-between"><span>Markup</span><b id="markupVal"></b></p>
+<p class="flex justify-between"><span>Comissão total (variável + fixa)</span><b id="commVal"></b></p>
+<p class="flex justify-between"><span>Impostos + antecipação</span><b id="taxVal"></b></p>
+<p class="flex justify-between"><span>ROI sobre o custo</span><b id="roiVal"></b></p>
+<p class="flex justify-between"><span>Preço sugerido p/ margem</span><b id="sug20" class="text-blue-600 font-bold"></b></p>
+</div></div></div>`],
+
+['list','Catálogo','Gestão completa de SKUs com cálculo unitário, margem, lucros e Curva ABC por faturamento.',
+`<div class="flex flex-wrap gap-2 mt-4 items-center">
+<button onclick="addSku()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm">+ Novo Produto</button>
+<label class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-xs font-semibold cursor-pointer transition">Importar CSV<input type="file" accept=".csv,text/csv" class="hidden" onchange="importCSV(this)"></label>
+<button onclick="exportCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition shadow-sm">Exportar CSV</button>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Colunas do CSV: nome, custo, preco, canal, vendas por mês.</p>
+<div class="overflow-x-auto mt-4"><table class="w-full text-xs text-left"><thead class="bg-slate-100 dark:bg-slate-800 font-semibold"><tr><th class="p-3">Produto</th><th class="p-3">Custo</th><th class="p-3">Preço</th><th class="p-3">Canal</th><th class="p-3">Vendas/mês</th><th class="p-3">Lucro un.</th><th class="p-3">Margem</th><th class="p-3">ABC</th><th class="p-3">Ações</th></tr></thead><tbody id="skuBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody></table></div><p id="skuSum" class="mt-4 text-xs font-bold text-slate-600 dark:text-slate-300"></p>`],
+
+['layers','2. Kits e Combos','Agrupe itens para diluir taxas fixas, frete e embalagens, aumentando o ticket médio e a margem.',
+`<button onclick="addKit()" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm">+ Adicionar item ao kit</button>
+<div class="grid lg:grid-cols-12 gap-8 mt-6">
+<div class="lg:col-span-8 overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-100 dark:bg-slate-800 font-semibold"><tr><th class="p-3">Item</th><th class="p-3">Custo unit.</th><th class="p-3">Qtd</th><th class="p-3">Subtotal</th><th class="p-3"></th></tr></thead><tbody id="kitBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody></table></div>
+<div class="lg:col-span-4 space-y-4">
+${f('kitSalePrice','Preço de venda do kit (R$)',289.9,.1)}
+<div class="text-xs space-y-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+<p class="flex justify-between"><span>Custo total (CMV)</span><b id="kitCost"></b></p>
+<p class="flex justify-between"><span>Economia vs. itens separados</span><b id="kitSave" class="text-emerald-600"></b></p>
+<p class="flex justify-between text-sm font-bold pt-2 border-t border-slate-200 dark:border-slate-700"><span>Lucro líquido do kit</span><b id="kitProfit" class="text-emerald-600 text-base"></b></p>
+<p class="flex justify-between"><span>Margem do kit</span><b id="kitMargin" class="text-blue-600"></b></p>
+</div></div></div>`],
+
+['bar-chart-3','3. Comparativo de Canais','Compare o lucro do mesmo produto em todos os marketplaces simultaneamente.',
+`<div class="grid lg:grid-cols-12 gap-6 mt-4">
+<div class="lg:col-span-7 overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-100 dark:bg-slate-800 font-semibold"><tr><th class="p-3">Canal</th><th class="p-3">Taxa</th><th class="p-3">Comissão</th><th class="p-3">Lucro</th><th class="p-3">Margem</th><th class="p-3">Preço p/ margem</th></tr></thead><tbody id="chBody" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody></table></div>
+<div class="lg:col-span-8 lg:col-span-5 h-80 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800"><canvas id="chChart"></canvas></div>
+</div>
+<div class="mt-8"><h3 class="text-sm font-bold mb-3">Tarifas dos canais (comissão % e taxa fixa R$)</h3>
+<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">${Object.entries(CH).map(([k,c])=>`<div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 text-xs border border-slate-200 dark:border-slate-800"><b class="block mb-2">${c.name}</b><div class="flex gap-2"><input type="number" id="rt_${k}" value="${+(c.rate*100).toFixed(2)}" step="0.1" title="Comissão %" class="${IN} !py-1"><input type="number" id="fx_${k}" value="${c.fixed}" step="0.5" title="Taxa fixa R$" class="${IN} !py-1"></div></div>`).join('')}</div>
+<div class="mt-4 max-w-xs"><label for="ratesDate" class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300">Taxas conferidas em</label><input type="date" id="ratesDate" class="${IN}"></div></div>`],
+
+['package','4. Giro e Estoque','Acompanhe cobertura em dias, risco de ruptura e capital imobilizado.',
+`<div class="grid md:grid-cols-3 gap-6 mt-4">
+<div class="space-y-4">${f('dailySales','Venda média diária (un)',12)}${f('currentStock','Estoque atual (un)',180)}${f('leadTime','Prazo do fornecedor (dias)',15)}</div>
+<div class="md:col-span-2 ${G2} items-start">${bx('stockDays','Dias de estoque','text-amber-600')}${bx('locked','Capital parado','text-blue-600')}${bx('reorder','Ponto de reposição','text-slate-800 dark:text-slate-100','reorderNote')}${bx('abc','Classe por giro','text-emerald-600','abcNote')}</div>
+</div>`],
+
+['target','5. Metas e Equilíbrio','Calcule o ponto de equilíbrio (Break-even) e faturamento necessário para bater metas.',
+`<div class="grid lg:grid-cols-3 gap-6 mt-4">
+<div class="space-y-4">${f('fixedCosts','Custos fixos mensais (R$)',4500,100)}${f('targetProfit','Lucro desejado (R$)',8000,500)}</div>
+<div class="lg:col-span-2 ${G2}">${bx('beUnits','Ponto de equilíbrio','text-rose-600','beRev')}${bx('tgUnits','Para bater a meta','text-emerald-600','tgRev')}</div>
+</div><p id="tgDaily" class="mt-4 text-xs font-bold text-emerald-600"></p>`],
+
+['shield-alert','6. Radar de Saúde','Verificação automática e manual de pilares essenciais para evitar prejuízos.',
+`<div class="grid md:grid-cols-12 gap-6 mt-4">
+<div class="md:col-span-7 space-y-3">
+${ck('h1','Margem líquida acima de 15%',1)}
+${ck('h2','Preço protegido contra alta de frete')}
+${ck('h3','Uso de kits para diluir tarifa fixa')}
+${ck('h4','Ads controlado (ACOS abaixo de 12%)',1)}
+${ck('h5','Tributação em dia')}
+</div>
+<div class="md:col-span-5 text-center p-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-center items-center">
+<span class="text-xs font-bold text-slate-500">Score de saúde financeira</span>
+<div id="score" class="text-6xl font-black my-3"></div>
+<span id="scoreBadge" class="px-4 py-1.5 text-xs font-bold rounded-full"></span>
+</div></div>`],
+
+['truck','7. Frete e Cubagem','Cálculo de peso volumétrico e custos estimados nos modais Flex e Fulfillment (Full/FBA).',
+`<div class="grid md:grid-cols-3 gap-6 mt-4">
+<div class="space-y-3">${f('realW','Peso real (kg)',.8,.1)}<div class="grid grid-cols-3 gap-2">${f('dimH','Alt (cm)',10)}${f('dimW','Larg (cm)',20)}${f('dimL','Comp (cm)',25)}</div></div>
+<div class="space-y-3"><div class="${G2}">${f('flexBase','Flex: base (R$)',12,.5)}${f('flexKg','Flex: por kg (R$)',2.5,.1)}${f('fullBase','Full: base (R$)',15,.5)}${f('fullKg','Full: por kg (R$)',3.2,.1)}</div></div>
+<div class="space-y-3">${bx('volW','Peso volumétrico','text-slate-800 dark:text-slate-100','chgW')}${bx('flexCost','Envio Flex / Coleta','text-cyan-600')}${bx('fullCost','Fulfillment (Full/FBA)','text-blue-600')}</div>
+</div>`],
+
+['wallet','8. Capital de Giro','Calcule a necessidade de caixa para bancar o intervalo entre fornecedor e repasse.',
+`<div class="grid md:grid-cols-3 gap-6 mt-4">
+<div class="space-y-3">${f('payout','Prazo médio de recebimento (dias)',14)}${f('supplier','Prazo de pagamento fornecedor (dias)',7)}</div>
+<div class="md:col-span-2 ${G2}">${bx('gap','Gap de caixa','text-amber-600','gapNote')}${bx('wc','Capital de giro mínimo','text-emerald-600','wcNote')}</div>
+</div>`],
+
+['receipt','9. Tributos','Estimativa pelo Simples Nacional (Anexo I - Comércio) com base no faturamento acumulado dos 12 meses.',
+`<div class="grid md:grid-cols-3 gap-6 mt-4">
+<div class="space-y-3">${f('rbt12','Faturamento últimos 12 meses (R$)',360000,10000)}<button onclick="useTax()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-sm w-full">Usar na precificação</button></div>
+<div class="md:col-span-2 ${G2}">${bx('effTax','Alíquota efetiva','text-blue-600','itemTax')}${bx('band','Faixa Simples','text-indigo-600','bandNote')}</div>
+</div>
+<p class="mt-4 text-xs text-slate-500">Estimativa baseada na tabela oficial. Valide sempre com seu contador.</p>`],
+
+['award','10. Nível do Seller','Nível calculado automaticamente com base em margem, saúde financeira e ponto de equilíbrio.',
+`<div class="mt-4 p-8 rounded-3xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg">
+<h3 id="lvl" class="text-3xl font-extrabold tracking-tight"></h3>
+<p id="pts" class="text-sm font-bold mt-1 opacity-90"></p>
+<div class="h-3 bg-black/20 rounded-full mt-4 overflow-hidden"><div id="bar" class="h-3 bg-white rounded-full transition-all duration-500" style="width:0"></div></div>
+<p id="lvlNote" class="text-xs mt-3 opacity-90"></p>
+</div>`],
+
+['megaphone','11. Anúncios e ACOS','Simule investimentos em Ads, ROAS desejado, ACOS de equilíbrio e lucro líquido pós-anúncio.',
+`<div class="grid md:grid-cols-3 gap-6 mt-4">
+<div class="space-y-3">${f('adsBudget','Orçamento diário Ads (R$)',50,10)}${f('roas','ROAS desejado (x)',4,.5)}</div>
+<div class="md:col-span-2 ${G2}">${bx('acos','ACOS correspondente','text-orange-600','acosNote')}${bx('adsRev','Faturamento via Ads/dia','text-emerald-600','adsMonth')}${bx('beAcos','ACOS de equilíbrio','text-slate-800 dark:text-slate-100','beNote')}${bx('adsProfit','Lucro pós-ads/dia','text-blue-600')}</div>
+</div>`],
+
+['sparkles','12. Textos e Insights','Sugestões rápidas por regras e geração avançada com IA do Google (Gemini).',
+`<div class="${G2} mt-4">
+<div><label class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300">Produto</label><input id="aiName" class="${IN}" value="Garrafa Térmica Inox 1 Litro Premium"></div>
+<div><label class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300">Diferenciais (separe por vírgula)</label><input id="aiDiff" class="${IN}" value="Conserva Frio 24h, Tampa Hermética, Livre de BPA"></div>
+</div>
+<button onclick="genAI()" class="mt-4 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">Gerar sugestões rápidas</button>
+<div class="mt-6 p-6 rounded-2xl border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-slate-800/40">
+<h3 class="text-sm font-bold mb-3 flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-blue-600"></i>Google Gemini AI</h3>
+<div class="${G2}">
+<div><label for="aiKey" class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300">Chave da API (Google AI Studio)</label><input type="password" id="aiKey" autocomplete="off" class="${IN}"></div>
+<div><label for="aiModel" class="block text-xs font-semibold mb-1 text-slate-600 dark:text-slate-300">Modelo</label><input id="aiModel" value="gemini-2.5-flash" class="${IN}"></div>
+</div>
+<p class="text-xs text-slate-500 mt-2">Crie sua chave gratuita em aistudio.google.com/apikey. Ela é salva apenas no seu navegador.</p>
+<button id="aiGemBtn" onclick="geminiGen()" class="mt-4 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-sm">Gerar com Gemini</button>
+<div id="aiGem" class="mt-4 text-xs whitespace-pre-wrap text-slate-700 dark:text-slate-300"></div>
+</div>
+<div class="mt-6 space-y-3 text-xs">
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800"><b class="text-blue-600 block mb-1">Título otimizado (até 60 caracteres)</b><p id="aiTitle" class="font-semibold"></p></div>
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800"><b class="text-emerald-600 block mb-1">Recomendação estratégica</b><p id="aiTip" class="font-semibold"></p></div>
+</div>`]
+];
+
+if(ADMIN){
+  TABS.push(['wrench','Criador','Painel administrativo para ajustes de taxas, regras e publicação de atualizações.',
+  `<ol class="mt-4 text-xs text-slate-600 dark:text-slate-400 space-y-1 list-decimal pl-5">
+  <li>Ajuste as taxas na aba Canais.</li>
+  <li>Modifique abaixo os textos da home, avisos e faixas.</li>
+  <li>Gere o arquivo config.json e atualize o repositório.</li>
+  </ol>
+  <div class="${G2} mt-4">
+  <div><label class="block text-xs font-semibold mb-1">Título da página inicial</label><input id="admHT" class="${IN}"></div>
+  <div><label class="block text-xs font-semibold mb-1">Data da atualização</label><input id="admU" placeholder="02/11/2026" class="${IN}"></div>
+  </div>
+  <div class="mt-4"><label class="block text-xs font-semibold mb-1">Subtítulo da página inicial</label><input id="admHS" class="${IN}"></div>
+  <div class="mt-4"><label class="block text-xs font-semibold mb-1">Aviso global (vazio para desativar)</label><input id="admN" class="${IN}"></div>
+  <div class="mt-4"><label class="block text-xs font-semibold mb-1">Faixas do Simples (JSON)</label><textarea id="admBands" rows="3" class="${IN} font-mono text-xs"></textarea></div>
+  <div class="mt-4 flex flex-wrap gap-2">
+  <button onclick="admPreview()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-200 dark:bg-slate-800">Pré-visualizar</button>
+  <button onclick="admGen()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 text-white">Gerar config.json</button>
+  <button onclick="admCopy()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-200 dark:bg-slate-800">Copiar</button>
+  </div>
+  <p id="admMsg" class="text-xs font-bold text-blue-600 mt-2"></p>
+  <textarea id="admOut" rows="8" readonly class="${IN} font-mono text-xs mt-2"></textarea>`]);
+}
+
+function applyCfg(c){
+  c=c||{}; CFG=c;
+  if(c.rates) for(const k in c.rates) if(CH[k]) Object.assign(CH[k], c.rates[k]);
+  if(Array.isArray(c.bands) && c.bands.length) BANDS.splice(0, BANDS.length, ...c.bands);
+}
+
+const loadCfg = () => fetch('config.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).then(applyCfg).catch(()=>{});
+
+function applyText(){
+  const h=CFG.hero||{};
+  if(h.title) set('heroTitle', h.title);
+  if(h.sub) set('heroSub', h.sub);
+  const n=$('notice');
+  if(CFG.notice){n.textContent=CFG.notice; n.classList.remove('hidden')} else n.classList.add('hidden');
+  set('stamp', CFG.updated ? 'Taxas e regras atualizadas em '+CFG.updated+'.' : '');
+  if(ADMIN){
+    $('admHT').value=$('heroTitle').textContent;
+    $('admHS').value=$('heroSub').textContent;
+    $('admN').value=CFG.notice||'';
+    $('admU').value=CFG.updated||'';
+    $('admBands').value=JSON.stringify(BANDS);
+  }
+}
+
+function admBuild(){
+  let bands;
+  try{bands=JSON.parse($('admBands').value)}catch(e){set('admMsg','Formato JSON inválido nas faixas.'); return null;}
+  set('admMsg','');
+  const rates={};
+  for(const k in CH) rates[k]={rate:v('rt_'+k)/100, fixed:v('fx_'+k)};
+  return {v:(CFG.v||0)+1, updated:$('admU').value.trim(), hero:{title:$('admHT').value.trim(), sub:$('admHS').value.trim()}, notice:$('admN').value.trim(), rates, bands};
+}
+
+function admGen(){const c=admBuild(); if(c)$('admOut').value=JSON.stringify(c,null,1)}
+function admPreview(){const c=admBuild(); if(!c)return; applyCfg(c); applyText(); calcAll(); set('admMsg','Prévia aplicada com sucesso.')}
+function admCopy(){const o=$('admOut'); o.select(); (navigator.clipboard?navigator.clipboard.writeText(o.value):Promise.reject()).then(()=>set('admMsg','Copiado para a área de transferência.'),()=>set('admMsg','Erro ao copiar.'))}
+
+function build(){
+  $('nav').innerHTML=TABS.map((t,i)=>`<button id="nb${i}" onclick="switchTab(${i})" class="px-3 py-2 rounded-xl whitespace-nowrap text-xs font-semibold flex items-center gap-2 transition"><i data-lucide="${t[0]}" class="w-4 h-4"></i>${t[1]}</button>`).join('')+'<button id="advBtn" onclick="toggleAdv()" class="px-3 py-2 rounded-xl whitespace-nowrap text-xs font-semibold text-slate-500 dark:text-slate-400 underline text-left mt-2">Mais ferramentas</button>';
+  $('main').innerHTML=TABS.map((t,i)=>`<section id="tab-${i}" class="tab hidden ${CARD} mb-8">${t[2]?`<h2 class="text-2xl font-extrabold tracking-tight flex items-center gap-3 mb-2"><i data-lucide="${t[0]}" class="text-blue-600 w-6 h-6"></i>${t[1]}</h2><p class="text-xs text-slate-500 dark:text-slate-400 mb-6">${t[2]}</p>`:''}${t[3]}</section>`).join('');
+}
+
+function switchTab(i){
+  cur=i;
+  TABS.forEach((_,k)=>{
+    $('tab-'+k).classList.toggle('hidden', k!==i);
+    const btn=$('nb'+k);
+    if(btn){
+      btn.className='px-3 py-2 rounded-xl whitespace-nowrap text-xs font-semibold flex items-center gap-2 transition ' + (k===i?'bg-blue-600 text-white shadow-sm':'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800') + (ADV.has(k)&&!advOpen&&k!==i?' hidden':'');
+    }
+  });
+  if(chart) chart.resize();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleAdv(){
+  advOpen=!advOpen;
+  $('advBtn').textContent=advOpen?'Menos ferramentas':'Mais ferramentas';
+  switchTab(cur);
+}
+
+function toggleTheme(){
+  const d=document.documentElement.classList.toggle('dark');
+  try{localStorage.setItem('theme', d?'dark':'light')}catch(e){}
+}
+
+const unit=(price,ch,cost,ship,op)=>{
+  const c=price*ch.rate+ch.fixed;
+  const t=price*(v('taxRate')+v('anticipRate'))/100;
+  const a=price*v('adsPercent')/100;
+  return {c, t, a, p: price - cost - c - t - a - ship - op};
+};
+
+function calcPricing(){
+  const ch=CH[$('calcChannel').value], cost=v('costPrice'), price=v('salePrice'), ship=v('shippingCost'), op=v('operationalCost');
+  const u=unit(price, ch, cost, ship, op);
+  G.profit=u.p; G.margin=price?u.p/price*100:0; G.preAds=price?(u.p+u.a)/price*100:0;
+  set('netProfitVal', R(u.p));
+  $('netProfitVal').className='text-3xl font-extrabold tracking-tight '+(u.p>=0?'text-emerald-600':'text-rose-600');
+  set('netMarginVal', G.margin.toFixed(1)+'%');
+  set('markupVal', (cost?price/cost:0).toFixed(2)+'x');
+  set('commVal', R(u.c));
+  set('taxVal', R(u.t));
+  set('roiVal', (cost?u.p/cost*100:0).toFixed(1)+'%');
+  const d=1 - ch.rate - (v('taxRate')+v('anticipRate')+v('adsPercent')+v('targetMargin'))/100;
+  set('sug20', d>0 ? R((cost + ship + op + ch.fixed)/d) : 'Inviável');
+}
+
+function renderKit(){
+  $('kitBody').innerHTML=kit.map((k,i)=>`<tr><td class="p-3"><input value="${esc(k.name)}" onchange="upKit(${i},'name',this.value)" class="bg-transparent border-b border-dashed border-slate-400 w-full text-xs font-semibold"></td><td class="p-3"><input type="number" step="0.5" value="${k.cost}" onchange="upKit(${i},'cost',this.value)" class="bg-transparent border-b border-dashed border-slate-400 w-20 text-xs font-semibold"></td><td class="p-3"><input type="number" min="1" value="${k.qty}" onchange="upKit(${i},'qty',this.value)" class="bg-transparent border-b border-dashed border-slate-400 w-14 text-xs font-semibold text-center"></td><td class="p-3 font-bold">${R(k.cost*k.qty)}</td><td class="p-3"><button onclick="delKit(${i})" class="text-rose-500 hover:text-rose-700"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td></tr>`).join('');
+  lucide.createIcons();
+}
+const addKit=()=>{kit.push({name:'Novo item',cost:20,qty:1}); renderKit(); calcAll(); save()};
+const delKit=i=>{kit.splice(i,1); renderKit(); calcAll(); save()};
+const upKit=(i,f,val)=>{kit[i][f]=f==='name'?val:Math.max(f==='qty'?1:0,parseFloat(val)||0); renderKit(); calcAll(); save()};
+
+function calcKit(){
+  const ch=CH[$('calcChannel').value], ship=v('shippingCost'), op=v('operationalCost'), price=v('kitSalePrice');
+  const cost=kit.reduce((a,k)=>a+k.cost*k.qty,0), units=kit.reduce((a,k)=>a+k.qty,0), u=unit(price, ch, cost, ship, op);
+  set('kitCost', R(cost));
+  set('kitSave', R(Math.max(0, units-1)*(ch.fixed + ship + op)));
+  set('kitProfit', R(u.p));
+  set('kitMargin', (price?u.p/price*100:0).toFixed(1)+'%');
+}
+
+function calcChannels(){
+  const price=v('salePrice'), cost=v('costPrice'), ship=v('shippingCost'), op=v('operationalCost');
+  const rows=[], names=[], vals=[];
+  for(const k in CH){
+    const c=CH[k], u=unit(price, c, cost, ship, op), m=price?u.p/price*100:0;
+    const dd=1 - c.rate - (v('taxRate')+v('anticipRate')+v('adsPercent')+v('targetMargin'))/100;
+    names.push(c.name); vals.push(+u.p.toFixed(2));
+    rows.push(`<tr><td class="p-3 font-semibold">${c.name}</td><td class="p-3 text-slate-500">${+(c.rate*100).toFixed(1)}% + ${R(c.fixed)}</td><td class="p-3">${R(u.c)}</td><td class="p-3 font-bold ${u.p>=0?'text-emerald-600':'text-rose-500'}">${R(u.p)}</td><td class="p-3 font-bold">${m.toFixed(1)}%</td><td class="p-3">${dd>0?R((cost+ship+op+c.fixed)/dd):'Inviável'}</td></tr>`);
+  }
+  $('chBody').innerHTML=rows.join('');
+  if(!chart){
+    chart=new Chart($('chChart'),{type:'bar',data:{labels:names,datasets:[{label:'Lucro (R$)',data:vals,backgroundColor:'rgba(37,99,235,.8)',borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  } else {
+    chart.data.labels=names; chart.data.datasets[0].data=vals; chart.update();
+  }
+}
+
+function calcStock(){
+  const d=v('dailySales'), s=v('currentStock'), lt=v('leadTime');
+  const days=d>0?s/d:0, rp=d*lt;
+  set('stockDays', d>0?Math.floor(days)+' dias':'-');
+  set('locked', R(s*v('costPrice')));
+  set('reorder', Math.ceil(rp)+' un');
+  G.low=s<=rp;
+  set('reorderNote', s<=rp?'Estoque abaixo do ponto de reposição.':'Estoque em nível seguro.');
+  const c=days<=30?'A':days<=60?'B':'C';
+  set('abc','Classe '+c);
+  set('abcNote', c==='A'?'Giro alto (até 30 dias).':c==='B'?'Giro médio (31 a 60 dias).':'Giro baixo (> 60 dias): capital parado.');
+}
+
+function calcGoal(){
+  const p=G.profit, fx=v('fixedCosts'), tg=v('targetProfit'), pr=v('salePrice');
+  if(!(p>0)){
+    ['beUnits','tgUnits'].forEach(i=>set(i,'Inviável'));
+    ['beRev','tgRev'].forEach(i=>set(i,'Lucro unitário é zero ou negativo.'));
+    set('tgDaily',''); G.beOk=false; return;
+  }
+  const be=Math.ceil(fx/p), tu=Math.ceil((fx+tg)/p);
+  G.beOk=true;
+  set('beUnits', be+' un'); set('beRev', 'Faturamento: '+R(be*pr));
+  set('tgUnits', tu+' un'); set('tgRev', 'Faturamento: '+R(tu*pr));
+  set('tgDaily', 'Meta diária necessária: cerca de '+Math.ceil(tu/30)+' vendas/dia');
+}
+
+function calcHealth(){
+  $('h1').checked=G.margin>15; $('h4').checked=v('adsPercent')<12;
+  const s=['h1','h2','h3','h4','h5'].filter(i=>$(i).checked).length*20;
+  G.score=s; set('score', s+'%');
+  $('score').className='text-6xl font-black my-3 '+(s>=80?'text-emerald-600':s>=60?'text-amber-600':'text-rose-600');
+  const b=$('scoreBadge');
+  b.textContent=s>=80?'Operação saudável':s>=60?'Requer ajustes':'Risco de prejuízo';
+  b.className='px-4 py-1.5 text-xs font-bold rounded-full '+(s>=80?'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200':s>=60?'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200':'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200');
+}
+
+function calcFreight(){
+  const w=v('realW'), vw=v('dimH')*v('dimW')*v('dimL')/6000, cw=Math.max(w, vw);
+  set('volW', vw.toFixed(2)+' kg');
+  set('chgW', 'Peso cobrado: '+cw.toFixed(2)+' kg');
+  set('flexCost', R(v('flexBase')+cw*v('flexKg')));
+  set('fullCost', R(v('fullBase')+cw*v('fullKg')));
+}
+
+function calcCash(){
+  const g=v('payout')-v('supplier'), daily=v('dailySales')*v('costPrice');
+  set('gap', (g>0?'+':'')+g+' dias');
+  set('gapNote', g>0?'Você financia a operação até o repasse.':'O canal paga antes do fornecedor.');
+  set('wc', R(Math.max(0, g)*daily));
+  set('wcNote', 'Dias de gap × custo diário ('+R(daily)+').');
+}
+
+const BANDS=[[180000,.04,0],[360000,.073,5940],[720000,.095,13860],[1800000,.107,22500],[3600000,.143,87300],[4800000,.19,378000]];
+
+function calcTax(){
+  const r=v('rbt12'), i=BANDS.findIndex(b=>r<=b[0]);
+  if(i<0||r<=0){
+    G.eff=null; set('effTax','-'); set('itemTax',''); set('band', i<0?'Fora do Simples':'-');
+    set('bandNote', i<0?'Acima de R$ 4,8M.':'Informe o faturamento.'); return;
+  }
+  const b=BANDS[i], eff=(r*b[1]-b[2])/r; G.eff=eff*100;
+  set('effTax', (eff*100).toFixed(2)+'%');
+  set('itemTax', 'Imposto estimado/un: '+R(v('salePrice')*eff));
+  set('band', (i+1)+'ª faixa');
+  set('bandNote', 'Alíquota nominal de '+(b[1]*100).toFixed(1).replace('.',',')+'%.');
+}
+const useTax=()=>{if(G.eff==null)return; $('taxRate').value=G.eff.toFixed(2); calcAll(); save()};
+
+function calcAds(){
+  const b=v('adsBudget'), r=v('roas'), a=r>0?100/r:0, rev=b*r;
+  set('acos', a.toFixed(1)+'%');
+  set('acosNote', 'Parcela do faturamento em Ads.');
+  set('adsRev', R(rev));
+  set('adsMonth', 'Cerca de '+R(rev*30)+' por mês');
+  set('beAcos', G.preAds.toFixed(1)+'%');
+  set('beNote', a<=G.preAds?'Abaixo do equilíbrio: Ads lucrativo.':'Acima do equilíbrio: Ads deficitário.');
+  const ap=rev*G.preAds/100-b;
+  set('adsProfit', R(ap));
+  $('adsProfit').className='text-3xl font-extrabold tracking-tight '+(ap>=0?'text-blue-600':'text-rose-600');
+}
+
+const LV=[[0,'Iniciante 🌱'],[250,'Em crescimento 📈'],[500,'Seller Pro 🚀'],[750,'Seller Elite 👑']];
+function calcLevel(){
+  const pts=Math.round(Math.max(0,Math.min(G.margin,30))*15+G.score*4+(G.beOk?100:0));
+  let i=0; LV.forEach((l,k)=>{if(pts>=l[0])i=k}); const nx=LV[i+1];
+  set('lvl','Nível: '+LV[i][1]); set('pts',pts+' pontos');
+  $('bar').style.width=(nx?Math.min(100,(pts-LV[i][0])/(nx[0]-LV[i][0])*100):100)+'%';
+  set('lvlNote',nx?'Faltam '+(nx[0]-pts)+' pontos para '+nx[1]+'.':'Nível máximo atingido.');
+}
+
+const cut=(s,n)=>s.length<=n?s:s.slice(0,n).replace(/\s\S*$/,'');
+function genAI(){
+  const n=$('aiName').value.trim()||'Produto', d=$('aiDiff').value.split(',').map(x=>x.trim()).filter(Boolean);
+  set('aiTitle', cut(n+' '+d.slice(0,2).join(' '), 60));
+  const m=G.margin;
+  set('aiTip', m>=20?`Margem de ${m.toFixed(1)}%: saudável. Teste kits para diluir custos.`:`Margem de ${m.toFixed(1)}%: atenção. Sugestão de preço para 20%: ${$('sug20').textContent}.`);
+}
+
+function syncRates(){
+  for(const k in CH) if($('rt_'+k)){ CH[k].rate=v('rt_'+k)/100; CH[k].fixed=v('fx_'+k); }
+  document.querySelectorAll('#calcChannel option').forEach(o=>{const c=CH[o.value]; o.textContent=`${c.name} (${+(c.rate*100).toFixed(1)}% + R$ ${c.fixed.toFixed(2)})`});
+}
+
+const numSku=(f,val)=>f==='n'||f==='ch'?val:Math.max(0,parseFloat(String(val).replace(',','.'))||0);
+const addSku=()=>{skus.push({n:'Novo produto',c:0,p:0,ch:'ml_premium',q:0}); calcAll(); save()};
+const delSku=i=>{skus.splice(i,1); calcAll(); save()};
+const upSku=(i,f,val)=>{skus[i][f]=numSku(f,val); calcAll(); save()};
+const useSku=i=>{const s=skus[i]; $('costPrice').value=s.c; $('salePrice').value=s.p; $('calcChannel').value=s.ch; calcAll(); save(); switchTab(3)};
+
+function renderSku(){
+  const rows=skus.map(s=>{const u=unit(s.p, CH[s.ch]||CH.ml_premium, s.c, v('shippingCost'), v('operationalCost')); return {...s, pr:u.p, m:s.p?u.p/s.p*100:0, rev:s.p*s.q}});
+  const tot=rows.reduce((a,r)=>a+r.rev,0); let acc=0;
+  [...rows].sort((a,b)=>b.rev-a.rev).forEach(r=>{const b=tot?acc/tot:1; r.abc=b<.8?'A':b<.95?'B':'C'; acc+=r.rev});
+  G.rows=rows; G.skuLoss=rows.filter(r=>r.pr<0).length;
+  const ci='bg-transparent border-b border-dashed border-slate-400 w-16 text-slate-800 dark:text-slate-100';
+  $('skuBody').innerHTML=rows.map((r,i)=>`<tr><td class="p-2"><input value="${esc(r.n)}" onchange="upSku(${i},'n',this.value)" class="bg-transparent border-b border-dashed border-slate-400 w-32 font-semibold text-slate-800 dark:text-slate-100"></td><td class="p-2"><input type="number" value="${r.c}" onchange="upSku(${i},'c',this.value)" class="${ci}"></td><td class="p-2"><input type="number" value="${r.p}" onchange="upSku(${i},'p',this.value)" class="${ci}"></td><td class="p-2"><select onchange="upSku(${i},'ch',this.value)" class="bg-transparent text-slate-800 dark:text-slate-100">${Object.entries(CH).map(([k,c])=>`<option value="${k}" ${k===r.ch?'selected':''}>${c.name}</option>`).join('')}</select></td><td class="p-2"><input type="number" value="${r.q}" onchange="upSku(${i},'q',this.value)" class="${ci}"></td><td class="p-2 font-bold ${r.pr>=0?'text-emerald-600':'text-rose-500'}">${R(r.pr)}</td><td class="p-2 font-bold">${r.m.toFixed(1)}%</td><td class="p-2 font-bold">${r.abc}</td><td class="p-2 whitespace-nowrap"><button onclick="useSku(${i})" class="text-blue-600 hover:underline mr-3 font-semibold">Usar</button><button onclick="delSku(${i})" class="text-rose-500 hover:underline">Excluir</button></td></tr>`).join('');
+  G.monthly=rows.reduce((a,r)=>a+r.pr*r.q,0);
+  set('skuSum', rows.length+' produtos cadastrados · '+G.skuLoss+' com prejuízo unitário · Lucro mensal estimado: '+R(G.monthly));
+}
+
+const dl=(n,t)=>{const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+t],{type:'text/csv'})); a.download=n; a.click()};
+function exportCSV(){
+  const m=x=>String(+x.toFixed(2)).replace('.',',');
+  const L=['nome;custo;preco;canal;vendas;lucro_un;margem_pct;abc'];
+  (G.rows||[]).forEach(r=>L.push([`"${r.n.replace(/"/g,'""')}"`, m(r.c), m(r.p), r.ch, r.q, m(r.pr), m(r.m), r.abc].join(';')));
+  dl('catalogo-gomys.csv', L.join('\n'));
+}
+
+function importCSV(inp){
+  const fl=inp.files[0]; if(!fl)return;
+  fl.text().then(t=>{
+    const L=t.replace(/^\ufeff/,'').split(/\r?\n/).filter(x=>x.trim());
+    const sep=L[0].includes(';')?';':',', H=L[0].split(sep).map(x=>x.toLowerCase().trim());
+    const ix=re=>H.findIndex(h=>re.test(h));
+    const c={n:ix(/produto|t[ií]tulo|nome|sku|item/), q:ix(/quant|qtd|unid/), r:ix(/valor|receita|total|pre[cç]o/), f:ix(/tarifa|comiss|taxa/), s:ix(/frete|envio/), k:ix(/custo/)};
+    inp.value='';
+    if(c.n<0||c.q<0||c.r<0){set('salesMsg','Colunas não encontradas no CSV.'); return;}
+    const num=x=>{let z=String(x||'').replace(/[^\d,.-]/g,''); if(z.includes(','))z=z.replace(/\./g,'').replace(',','.'); return parseFloat(z)||0}, m={};
+    L.slice(1).forEach(l=>{const a=l.split(sep).map(x=>x.replace(/^"|"$/g,'').trim()), n=a[c.n]; if(!n)return; const o=m[n.toLowerCase()]??={n,q:0,rev:0,fee:0,ship:0}; o.q+=num(a[c.q]); o.rev+=num(a[c.r]); if(c.f>=0)o.fee+=num(a[c.f]); if(c.s>=0)o.ship+=num(a[c.s]); if(c.k>=0&&num(a[c.k]))o.uc=num(a[c.k])});
+    sales=Object.values(m); set('salesMsg',''); calcAll(); save();
+  });
+}
+
+const SF=['calcChannel','costPrice','salePrice','taxRate','anticipRate','shippingCost','operationalCost','adsPercent'];
+function saveScen(){
+  const n=prompt('Nome do cenário','Cenário '+(scen.length+1)); if(!n)return;
+  if(scen.length>=3) scen.shift();
+  const f={}; SF.forEach(k=>f[k]=$(k).value);
+  scen.push({n, f, price:v('salePrice'), profit:G.profit, margin:G.margin});
+  calcAll(); save();
+}
+function loadScen(i){for(const k in scen[i].f)$(k).value=scen[i].f[k]; calcAll(); save()}
+const delScen=i=>{scen.splice(i,1); calcAll(); save()};
+function renderScen(){
+  $('scenBody').innerHTML=scen.map((s,i)=>{
+    const d=s.profit-G.profit;
+    return `<tr><td class="py-1 font-semibold">${esc(s.n)}</td><td>${R(s.price)}</td><td>${R(s.profit)} <span class="${d>=0?'text-emerald-600':'text-rose-500'}">(${d>=0?'+':''}${R(d)})</span></td><td>${s.margin.toFixed(1)}%</td><td class="whitespace-nowrap"><button onclick="loadScen(${i})" class="text-blue-600 hover:underline mr-2">Carregar</button><button onclick="delScen(${i})" class="text-rose-500 hover:underline">Excluir</button></td></tr>`;
+  }).join('');
+}
+
+function calcDash(){
+  set('dLucro', R(G.profit)); set('dMargem', G.margin.toFixed(1)+'%'); set('dBE', $('beUnits').textContent); set('dScore', G.score+'%');
+  const fx=v('fixedCosts'), mo=G.monthly, vd=$('dVerdict');
+  const ok='bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-900';
+  const bad='bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-900';
+
+  if(G.real){
+    const r=G.real;
+    vd.className='mt-4 p-5 rounded-2xl text-base font-bold '+ (r.pr>=0?ok:bad);
+    vd.textContent=`Nas vendas importadas você faturou ${R(r.rev)} e ${r.pr>=0?'lucrou':'teve prejuízo de'} ${R(Math.abs(r.pr))} (${r.rev?(r.pr/r.rev*100).toFixed(1):0}%). ${r.loss} produto(s) no vermelho.`;
+  } else if(skus.some(k=>k.q>0)){
+    const net=mo-fx;
+    vd.className='mt-4 p-5 rounded-2xl text-base font-bold '+(net>=0?ok:bad);
+    vd.textContent=net>=0?`Operação lucrativa: cerca de ${R(net)} líquidos por mês, já descontados ${R(fx)} de custos fixos.`:`Ainda deficitário: o catálogo deixa ${R(mo)} e os custos fixos são ${R(fx)}. Faltam ${R(-net)} por mês.`;
+  } else {
+    vd.className='mt-4 p-5 rounded-2xl text-base font-bold '+(G.profit>=0?ok:bad);
+    vd.textContent=G.profit>=0?`Cada venda deixa ${R(G.profit)} de lucro (${G.margin.toFixed(1)}%).`:`Cada venda dá prejuízo de ${R(-G.profit)}. Ajuste preços ou custos.`;
+  }
+
+  const A=[], g=v('payout')-v('supplier');
+  if(G.profit<0) A.push(['r','O produto em foco apresenta prejuízo unitário.']);
+  else if(G.margin<10) A.push(['a','Margem líquida abaixo de 10% no produto principal.']);
+  if(G.skuLoss>0) A.push(['r',G.skuLoss+' produto(s) no Catálogo com margem negativa.']);
+  if(G.low) A.push(['a','Estoque no ou abaixo do ponto de reposição.']);
+  if(v('roas')>0&&100/v('roas')>G.preAds) A.push(['a','ACOS desejado acima do ACOS de equilíbrio.']);
+  if(g>0) A.push(['a','Gap de caixa: você financia '+g+' dias de operação.']);
+  if(!A.length) A.push(['g','Nenhum alerta crítico. Operação saudável.']);
+
+  const C={
+    r:'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-900',
+    a:'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-900',
+    g:'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-900'
+  };
+  $('alerts').innerHTML=A.map(a=>`<li class="p-3.5 rounded-xl text-xs font-semibold ${C[a[0]]}">${a[1]}</li>`).join('');
+}
+
+async function geminiGen(){
+  const key=$('aiKey').value.trim(), model=$('aiModel').value.trim()||'gemini-2.5-flash', out=$('aiGem'), btn=$('aiGemBtn');
+  if(!key){out.textContent='Insira sua chave da API do Google AI Studio.'; return;}
+  save(); btn.disabled=true; out.textContent='Gerando análise com Gemini...';
+  const prompt=`Atue como especialista em e-commerce brasileiro. Responda em português do Brasil, direto ao ponto.
+Produto: ${$('aiName').value}
+Diferenciais: ${$('aiDiff').value}
+Canal: ${CH[$('calcChannel').value].name}; Preço R$ ${v('salePrice')}; Custo R$ ${v('costPrice')}; Lucro R$ ${R(G.profit)}; Margem ${G.margin.toFixed(1)}%; ACOS de equilíbrio ${G.preAds.toFixed(1)}%.
+Forneça: 1) Três opções de títulos otimizados até 60 caracteres; 2) Descrição curta de vendas; 3) 5 bullets de benefícios; 4) Duas recomendações estratégicas de preço ou kits.`;
+  try{
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error?.message||r.status);
+    out.textContent=(j.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('')||'Sem resposta da IA.';
+  }catch(e){out.textContent='Erro na API: '+e.message;}
+  btn.disabled=false;
+}
+
+const tplSales=()=>dl('modelo-vendas-gomys.csv','produto;quantidade;valor_vendido;tarifas;frete;custo_unitario\nGarrafa Térmica 1L;10;1499,00;240,00;185,00;50,00');
+
+function calcAll(){
+  syncRates(); calcPricing(); calcKit(); calcChannels(); calcStock(); calcGoal(); calcHealth(); calcFreight(); calcCash(); calcTax(); calcAds(); calcLevel(); renderSku(); renderScen(); renderSales(); calcDash();
+}
+
+function renderSales(){
+  const tx=v('taxRate')/100, op=v('operationalCost');
+  const rows=sales.map(r=>{
+    const sk=skus.find(k=>k.n.toLowerCase()===r.n.toLowerCase()), uc=r.uc??sk?.c, cost=(uc||0)*r.q;
+    const pr=r.rev - r.fee - r.ship - cost - r.rev*tx - op*r.q;
+    return {...r, nc:uc==null, cost, pr, m:r.rev?pr/r.rev*100:0};
+  }).sort((a,b)=>a.pr-b.pr);
+  const rev=rows.reduce((a,r)=>a+r.rev,0), pr=rows.reduce((a,r)=>a+r.pr,0), loss=rows.filter(r=>r.pr<0).length;
+  G.real=rows.length?{rev, pr, loss}:null;
+  $('salesBody').innerHTML=rows.map(r=>`<tr><td class="p-3 font-semibold">${esc(r.n)}${r.nc?' <span class="text-amber-600 font-normal">(sem custo)</span>':''}</td><td class="p-3">${r.q}</td><td class="p-3">${R(r.rev)}</td><td class="p-3">${R(r.fee+r.ship)}</td><td class="p-3">${R(r.cost)}</td><td class="p-3 font-bold ${r.pr>=0?'text-emerald-600':'text-rose-500'}">${R(r.pr)}</td><td class="p-3 font-bold">${r.m.toFixed(1)}%</td></tr>`).join('');
+  $('salesSum').textContent=rows.length?`Faturamento total: ${R(rev)} · Lucro real: ${R(pr)} (${rev?(pr/rev*100).toFixed(1):0}%) · ${loss} produto(s) no prejuízo`:'Nenhuma venda importada ainda. Baixe o modelo CSV e faça o upload.';
+}
+
+function save(){
+  try{
+    const s={}; document.querySelectorAll('#main input[id], #main select[id]').forEach(e=>{if(!e.id.startsWith('adm'))s[e.id]=e.type==='checkbox'?e.checked:e.value});
+    localStorage.setItem(KEY, JSON.stringify({f:s, kit, skus, scen, sales, cv:CFG.v||0}));
+  }catch(e){}
+}
+
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY)); if(!s)return;
+    for(const[k,val] of Object.entries(s.f||{})){
+      const e=$(k); if(!e||((s.cv||0)!==(CFG.v||0)&&/^(rt|fx)_/.test(k)))continue;
+      e.type==='checkbox'?e.checked=val:e.value=val;
+    }
+    if(Array.isArray(s.kit)&&s.kit.length) kit=s.kit;
+    if(Array.isArray(s.skus)) skus=s.skus;
+    if(Array.isArray(s.scen)) scen=s.scen;
+    if(Array.isArray(s.sales)) sales=s.sales;
+  }catch(e){}
+}
+
+function resetAll(){
+  if(confirm('Tem certeza que deseja apagar todos os dados salvos neste navegador?')){
+    try{localStorage.removeItem(KEY)}catch(e){}
+    location.reload();
+  }
+}
+
+function exportPDF(){
+  const hid=[...document.querySelectorAll('.tab.hidden')];
+  hid.forEach(t=>t.classList.remove('hidden')); if(chart)chart.resize();
+  const done=()=>{hid.forEach(t=>t.classList.add('hidden')); switchTab(cur)};
+  html2pdf().set({margin:.3, filename:'Relatorio_Gomys_2026.pdf', image:{type:'jpeg', quality:.95}, html2canvas:{scale:2}, jsPDF:{unit:'in', format:'a4', orientation:'portrait'}}).from($('main')).save().then(done, done);
+}
+
+['input','change'].forEach(ev=>document.addEventListener(ev,e=>{
+  if(e.target.id && e.target.closest('#main') && !e.target.id.startsWith('ai')){
+    calcAll(); save();
+  }
+}));
+
+function startApp(){
+  if(started) return; started=true;
+  load(); renderKit(); calcAll(); genAI(); switchTab(0);
+}
+
+function initAuth(){
+  if(!FIREBASE_CONFIG.apiKey||typeof firebase==='undefined'||!/^https?:$/.test(location.protocol)){
+    startApp(); return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG); auth=firebase.auth();
+  auth.onAuthStateChanged(u=>{
+    if(u){
+      KEY='gomys_v3_'+u.uid; $('gate').classList.add('hidden');
+      $('logoutBtn').classList.remove('hidden'); $('logoutBtn').title=u.email||'';
+      startApp();
+    } else {
+      $('logoutBtn').classList.add('hidden'); $('gate').classList.remove('hidden');
+    }
+  });
+}
+
+function lgErr(e){
+  const m={'auth/invalid-credential':'E-mail ou senha incorretos.','auth/wrong-password':'Senha incorreta.','auth/user-not-found':'Conta não encontrada.','auth/email-already-in-use':'E-mail já cadastrado.','auth/weak-password':'A senha deve ter pelo menos 6 caracteres.','auth/invalid-email':'E-mail inválido.'};
+  set('lgMsg', m[e.code]||e.message);
+}
+
+const loginSocial=k=>auth.signInWithPopup(k==='apple'?new firebase.auth.OAuthProvider('apple.com'):new firebase.auth.GoogleAuthProvider()).catch(lgErr);
+
+function loginEmail(create){
+  const e=$('lgEmail').value.trim(), p=$('lgPass').value;
+  if(!e||!p){set('lgMsg','Preencha e-mail e senha.'); return;}
+  set('lgMsg','');
+  (create?auth.createUserWithEmailAndPassword(e,p):auth.signInWithEmailAndPassword(e,p)).catch(lgErr);
+}
+
+function resetPass(){
+  const e=$('lgEmail').value.trim();
+  if(!e){set('lgMsg','Digite seu e-mail para recuperar a senha.'); return;}
+  auth.sendPasswordResetEmail(e).then(()=>set('lgMsg','E-mail de recuperação enviado.')).catch(lgErr);
+}
+
+const logout=()=>auth.signOut().then(()=>location.reload());
+
+loadCfg().then(()=>{
+  build(); applyText(); lucide.createIcons(); initAuth();
+});
+</script>
+</body>
+</html>
